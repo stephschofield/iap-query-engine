@@ -7,11 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
-  CalendarIcon,
   Download,
   Search,
   Filter,
@@ -26,22 +23,19 @@ import {
   RefreshCw,
   Wifi,
   WifiOff,
-  Settings,
+  Home,
 } from "lucide-react"
-import { format } from "date-fns"
-import { cn } from "@/lib/utils"
 import { CoachingInsights } from "@/components/coaching-insights"
 import { AnalyticsCharts } from "@/components/analytics-charts"
 import { InteractionDetailModal } from "@/components/interaction-detail-modal"
+import { ApiDiagnosticsPanel } from "@/components/api-diagnostics-panel"
+import { ApiDebugPanel } from "@/components/api-debug-panel"
+import { GreetingRequirements } from "@/components/greeting-requirements"
 import { fetchInteractions, checkApiHealth, fallbackDemoData, fetchSwaggerSpec, type InteractionData } from "@/lib/api"
 import Image from "next/image"
 
-// Add this import
-const API_BASE_URL = "https://ciap-app-kcf5ofqycqvs2.mangomeadow-b5c8efc2.centralus.azurecontainerapps.io"
-
-export default function SpectrumAnalyticsDashboard() {
+export default function AdminDashboard() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [dateFilter, setDateFilter] = useState<Date>()
   const [agentFilter, setAgentFilter] = useState("all")
   const [issueTypeFilter, setIssueTypeFilter] = useState("all")
   const [interactions, setInteractions] = useState<InteractionData[]>([])
@@ -110,17 +104,13 @@ export default function SpectrumAnalyticsDashboard() {
       // First analyze the API documentation
       const apiSpec = await analyzeApiDocumentation()
 
-      if (!apiSpec) {
-        console.log("Could not load API specification, using fallback data")
-        return
-      }
-
       // Check if API is available
       const apiHealthy = await checkApiHealth()
       console.log("API Health Check:", apiHealthy)
 
-      if (!apiHealthy) {
-        console.log("API not available, using fallback data")
+      if (!apiSpec || !apiHealthy) {
+        console.log("Could not load API specification or API is not available, using fallback data")
+        useFallbackData()
         return
       }
 
@@ -147,10 +137,12 @@ export default function SpectrumAnalyticsDashboard() {
         console.log("Extracted issue types:", loadedIssueTypes)
       } else {
         console.log("No interaction data found, using fallback")
+        useFallbackData()
       }
     } catch (err) {
       console.error("Error loading data:", err)
       setError(err instanceof Error ? err.message : "Failed to load data")
+      useFallbackData()
     } finally {
       setLoading(false)
       console.log("=== DATA LOAD COMPLETE ===")
@@ -200,11 +192,6 @@ export default function SpectrumAnalyticsDashboard() {
       )
     }
 
-    if (dateFilter) {
-      const filterDate = format(dateFilter, "yyyy-MM-dd")
-      filtered = filtered.filter((call) => call.date === filterDate)
-    }
-
     if (agentFilter !== "all") {
       filtered = filtered.filter((call) => call.agent_name === agentFilter)
     }
@@ -214,7 +201,7 @@ export default function SpectrumAnalyticsDashboard() {
     }
 
     setFilteredData(filtered)
-  }, [searchTerm, dateFilter, agentFilter, issueTypeFilter, interactions])
+  }, [searchTerm, agentFilter, issueTypeFilter, interactions])
 
   const getSentimentBadge = (start: number, end: number) => {
     const improvement = end - start
@@ -300,23 +287,17 @@ export default function SpectrumAnalyticsDashboard() {
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = "spectrum-detailed-analytics-report.csv"
+    a.download = "spectrum-admin-analytics-report.csv"
     a.click()
     window.URL.revokeObjectURL(url)
   }
-
-  useEffect(() => {
-    if (!interactions.length) {
-      useFallbackData()
-    }
-  }, [interactions])
 
   if (loading) {
     return (
       <div className="container mx-auto p-6 flex items-center justify-center min-h-screen">
         <div className="flex items-center gap-2">
           <Loader2 className="h-6 w-6 animate-spin" />
-          <span>Loading Spectrum Analytics Dashboard...</span>
+          <span>Loading Spectrum Admin Dashboard...</span>
         </div>
       </div>
     )
@@ -370,17 +351,17 @@ export default function SpectrumAnalyticsDashboard() {
 
           {/* Title and subtitle below logo */}
           <div className="text-center">
-            <h1 className="text-3xl font-bold">Supervisor Analytics Dashboard</h1>
+            <h1 className="text-3xl font-bold">Admin Dashboard</h1>
             <p className="text-muted-foreground flex items-center justify-center gap-2">
               {isUsingFallbackData ? (
                 <>
                   <WifiOff className="h-4 w-4" />
-                  Demo mode - Real-time interaction analytics with crosstalk, mutual silence, and sentiment scoring
+                  Demo mode - Administrative controls and system diagnostics
                 </>
               ) : (
                 <>
                   <Wifi className="h-4 w-4" />
-                  Real-time interaction analytics with crosstalk, mutual silence, and sentiment scoring
+                  Administrative controls and system diagnostics
                 </>
               )}
             </p>
@@ -390,11 +371,11 @@ export default function SpectrumAnalyticsDashboard() {
           <div className="flex justify-end gap-2">
             <Button
               variant="outline"
-              onClick={() => (window.location.href = "/admin")}
+              onClick={() => (window.location.href = "/")}
               className="flex items-center gap-2 bg-transparent"
             >
-              <Settings className="h-4 w-4" />
-              Admin
+              <Home className="h-4 w-4" />
+              Dashboard
             </Button>
             <Button variant="outline" onClick={loadData} className="flex items-center gap-2 bg-transparent">
               <RefreshCw className="h-4 w-4" />
@@ -407,6 +388,15 @@ export default function SpectrumAnalyticsDashboard() {
           </div>
         </div>
       </div>
+
+      {/* API Diagnostics Panel */}
+      <ApiDiagnosticsPanel />
+
+      {/* API Debug Panel */}
+      <ApiDebugPanel />
+
+      {/* Greeting Requirements */}
+      <GreetingRequirements data={filteredData} />
 
       {/* Enhanced Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -483,7 +473,7 @@ export default function SpectrumAnalyticsDashboard() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Filter className="h-5 w-5" />
-            Filters & Search
+            Admin Filters & Search
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -525,29 +515,11 @@ export default function SpectrumAnalyticsDashboard() {
                 ))}
               </SelectContent>
             </Select>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-[240px] justify-start text-left font-normal",
-                    !dateFilter && "text-muted-foreground",
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateFilter ? format(dateFilter, "PPP") : "Pick a date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={dateFilter} onSelect={setDateFilter} initialFocus />
-              </PopoverContent>
-            </Popover>
-            {(searchTerm || dateFilter || agentFilter !== "all" || issueTypeFilter !== "all") && (
+            {(searchTerm || agentFilter !== "all" || issueTypeFilter !== "all") && (
               <Button
                 variant="ghost"
                 onClick={() => {
                   setSearchTerm("")
-                  setDateFilter(undefined)
                   setAgentFilter("all")
                   setIssueTypeFilter("all")
                 }}
@@ -562,7 +534,7 @@ export default function SpectrumAnalyticsDashboard() {
       {/* Enhanced Detailed Results Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Detailed Interaction Scoring</CardTitle>
+          <CardTitle>Admin - Detailed Interaction Scoring</CardTitle>
           <CardDescription>
             Showing {filteredData.length} of {analyticsSummary.total_interactions} interactions with comprehensive
             scoring metrics {isUsingFallbackData && "(Demo Data)"}

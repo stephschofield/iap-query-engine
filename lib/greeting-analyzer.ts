@@ -11,7 +11,7 @@ export interface GreetingAnalysis {
   coachingNote: string
 }
 
-export interface CharterAnalytics {
+export interface SpectrumAnalytics {
   sentimentStart: number
   sentimentEnd: number
   sentimentImprovement: number
@@ -22,15 +22,15 @@ export interface CharterAnalytics {
   customerSatisfaction: number
 }
 
-export async function analyzeCharterInteraction(
+export async function analyzeSpectrumInteraction(
   transcript: string,
   interactionType: string,
-): Promise<CharterAnalytics> {
+): Promise<SpectrumAnalytics> {
   try {
     const { text } = await generateText({
       model: openai("gpt-4"),
       prompt: `
-        Analyze this Charter Communications customer service interaction for coaching insights.
+        Analyze this Spectrum customer service interaction for coaching insights.
         
         Interaction Type: ${interactionType}
         Transcript: "${transcript}"
@@ -45,7 +45,7 @@ export async function analyzeCharterInteraction(
         7. issueResolution: string (brief description of outcome)
         8. customerSatisfaction: number (0-100, overall satisfaction score)
         
-        Focus on actionable coaching insights for Charter supervisors.
+        Focus on actionable coaching insights for Spectrum supervisors.
       `,
     })
 
@@ -53,7 +53,7 @@ export async function analyzeCharterInteraction(
     analysis.sentimentImprovement = analysis.sentimentEnd - analysis.sentimentStart
     return analysis
   } catch (error) {
-    console.error("Error analyzing Charter interaction:", error)
+    console.error("Error analyzing Spectrum interaction:", error)
     return {
       sentimentStart: 50,
       sentimentEnd: 50,
@@ -75,9 +75,9 @@ export async function analyzeCallGreeting(
     const { text } = await generateText({
       model: openai("gpt-4"),
       prompt: `
-        Analyze the following Charter Communications call transcript for greeting compliance.
+        Analyze the following Spectrum call transcript for greeting compliance.
         
-        Charter greeting requirements:
+        Spectrum greeting requirements:
         ${brandedGreetingRequirements.map((req) => `- ${req}`).join("\n")}
         
         Call transcript:
@@ -109,8 +109,8 @@ export async function analyzeCallGreeting(
   }
 }
 
-export const charterGreetingRequirements = [
-  "Must include company name (Charter Communications)",
+export const spectrumGreetingRequirements = [
+  "Must include company name (Spectrum)",
   "Must include agent's name",
   "Must include offer to help or assist",
   "Should be professional and welcoming tone",

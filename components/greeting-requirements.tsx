@@ -4,7 +4,7 @@ import { CheckCircle } from "lucide-react"
 
 export function GreetingRequirements() {
   const requirements = [
-    "Include company name: 'Charter Communications'",
+    "Include company name: 'Spectrum'",
     "State agent's first name clearly",
     "Offer assistance: 'How can I help you?' or similar",
     "Professional and welcoming tone",
@@ -16,7 +16,7 @@ export function GreetingRequirements() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <CheckCircle className="h-5 w-5 text-green-500" />
-          Charter Greeting Standards
+          Spectrum Greeting Standards
         </CardTitle>
         <CardDescription>All agent calls must meet these greeting standards</CardDescription>
       </CardHeader>
