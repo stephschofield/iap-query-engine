@@ -54,15 +54,13 @@ export function CoachingInsights({ data }: CoachingInsightsProps) {
     agent.avgNontalk = agent.calls.reduce((sum, call) => sum + call.nontalkScore, 0) / agent.totalCalls
   })
 
-  const topPerformers = Object.entries(agentPerformance)
-    .map(([name, stats]) => ({
-      name,
-      sentimentImprovement: Math.round(stats.avgSentimentImprovement),
-      crosstalk: Math.round(stats.avgCrosstalk * 10) / 10,
-      nontalk: Math.round(stats.avgNontalk * 10) / 10,
-      totalCalls: stats.totalCalls,
-    }))
-    .sort((a, b) => b.sentimentImprovement - a.sentimentImprovement)
+  const topPerformers = Object.entries(agentPerformance).map(([name, stats]) => ({
+    name,
+    sentimentImprovement: Math.round(stats.avgSentimentImprovement),
+    crosstalk: Math.round(stats.avgCrosstalk * 10) / 10,
+    nontalk: Math.round(stats.avgNontalk * 10) / 10,
+    totalCalls: stats.totalCalls,
+  }))
 
   // Coaching priorities based on metrics
   const coachingPriorities = Object.entries(agentPerformance)
@@ -87,18 +85,15 @@ export function CoachingInsights({ data }: CoachingInsightsProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-blue-500" />
-            Agent Performance Rankings
+            Agent Performance Overview
           </CardTitle>
-          <CardDescription>Based on sentiment improvement and call quality metrics</CardDescription>
+          <CardDescription>Individual agent performance metrics and call quality analysis</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {topPerformers.slice(0, 4).map((agent, index) => (
+            {topPerformers.slice(0, 4).map((agent) => (
               <div key={agent.name} className="flex items-center justify-between p-3 border rounded-lg">
                 <div className="flex items-center gap-3">
-                  <Badge variant={index === 0 ? "default" : "secondary"} className="text-xs">
-                    #{index + 1}
-                  </Badge>
                   <div>
                     <div className="font-medium">{agent.name}</div>
                     <div className="text-xs text-muted-foreground">{agent.totalCalls} calls analyzed</div>
