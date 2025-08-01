@@ -4,14 +4,14 @@ import { TrendingUp, Target, AlertTriangle, MessageSquare } from "lucide-react"
 
 interface CoachingInsightsProps {
   data: Array<{
-    id: string
-    agent_name: string
-    sentiment_start: number
-    sentiment_end: number
-    crosstalk_score: number
-    mutual_silence_score: number
-    coaching_recommendations: string[]
-    issue_type: string
+    interactionId: string
+    agentName: string
+    sentimentStart: number
+    sentimentEnd: number
+    crosstalkScore: number
+    nontalkScore: number
+    coachingRecommendations: string[]
+    issueType: string
     resolution: string
   }>
 }
@@ -20,17 +20,17 @@ export function CoachingInsights({ data }: CoachingInsightsProps) {
   // Agent performance analysis
   const agentPerformance = data.reduce(
     (acc, call) => {
-      if (!acc[call.agent_name]) {
-        acc[call.agent_name] = {
+      if (!acc[call.agentName]) {
+        acc[call.agentName] = {
           calls: [],
           avgSentimentImprovement: 0,
           avgCrosstalk: 0,
-          avgMutualSilence: 0,
+          avgNontalk: 0,
           totalCalls: 0,
         }
       }
-      acc[call.agent_name].calls.push(call)
-      acc[call.agent_name].totalCalls++
+      acc[call.agentName].calls.push(call)
+      acc[call.agentName].totalCalls++
       return acc
     },
     {} as Record<
@@ -39,7 +39,7 @@ export function CoachingInsights({ data }: CoachingInsightsProps) {
         calls: any[]
         avgSentimentImprovement: number
         avgCrosstalk: number
-        avgMutualSilence: number
+        avgNontalk: number
         totalCalls: number
       }
     >,
@@ -49,9 +49,9 @@ export function CoachingInsights({ data }: CoachingInsightsProps) {
   Object.keys(agentPerformance).forEach((agentName) => {
     const agent = agentPerformance[agentName]
     agent.avgSentimentImprovement =
-      agent.calls.reduce((sum, call) => sum + (call.sentiment_end - call.sentiment_start), 0) / agent.totalCalls
-    agent.avgCrosstalk = agent.calls.reduce((sum, call) => sum + call.crosstalk_score, 0) / agent.totalCalls
-    agent.avgMutualSilence = agent.calls.reduce((sum, call) => sum + call.mutual_silence_score, 0) / agent.totalCalls
+      agent.calls.reduce((sum, call) => sum + (call.sentimentEnd - call.sentimentStart), 0) / agent.totalCalls
+    agent.avgCrosstalk = agent.calls.reduce((sum, call) => sum + call.crosstalkScore, 0) / agent.totalCalls
+    agent.avgNontalk = agent.calls.reduce((sum, call) => sum + call.nontalkScore, 0) / agent.totalCalls
   })
 
   const topPerformers = Object.entries(agentPerformance)
@@ -59,7 +59,7 @@ export function CoachingInsights({ data }: CoachingInsightsProps) {
       name,
       sentimentImprovement: Math.round(stats.avgSentimentImprovement),
       crosstalk: Math.round(stats.avgCrosstalk * 10) / 10,
-      mutualSilence: Math.round(stats.avgMutualSilence * 10) / 10,
+      nontalk: Math.round(stats.avgNontalk * 10) / 10,
       totalCalls: stats.totalCalls,
     }))
     .sort((a, b) => b.sentimentImprovement - a.sentimentImprovement)
@@ -69,7 +69,7 @@ export function CoachingInsights({ data }: CoachingInsightsProps) {
     .map(([name, stats]) => {
       const priorities = []
       if (stats.avgCrosstalk > 5) priorities.push("Reduce interruptions")
-      if (stats.avgMutualSilence > 10) priorities.push("Improve conversation flow")
+      if (stats.avgNontalk > 10) priorities.push("Improve preparation")
       if (stats.avgSentimentImprovement < 30) priorities.push("Customer satisfaction")
 
       return {
@@ -111,7 +111,7 @@ export function CoachingInsights({ data }: CoachingInsightsProps) {
                   </div>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
                     <span>{agent.crosstalk}% crosstalk</span>
-                    <span>{agent.mutualSilence}% silence</span>
+                    <span>{agent.nontalk}% nontalk</span>
                   </div>
                 </div>
               </div>

@@ -21,24 +21,24 @@ interface InteractionDetailModalProps {
   isOpen: boolean
   onClose: () => void
   interaction: {
-    id: string
+    interactionId: string
     date: string
-    agent_name: string
-    issue_type: string
+    agentName: string
+    issueType: string
     description: string
-    sentiment_start: number
-    sentiment_end: number
-    positive_sentiment: number
-    negative_sentiment: number
-    crosstalk_score: number
-    mutual_silence_score: number
-    nontalk_score: number
+    sentimentStart: number
+    sentimentEnd: number
+    positiveSentiment: number
+    negativeSentiment: number
+    crosstalkScore: number
+    mutualSilenceScore: number
+    nontalkScore: number
     resolution: string
-    coaching_recommendations: string[]
-    greeting_text: string
-    has_greeting: boolean
+    coachingRecommendations: string[]
+    greetingText: string
+    hasGreeting: boolean
     behavior: string
-    compliance_score: string
+    complianceScore: string
     transcript?: string
   } | null
 }
@@ -46,80 +46,53 @@ interface InteractionDetailModalProps {
 export function InteractionDetailModal({ isOpen, onClose, interaction }: InteractionDetailModalProps) {
   if (!interaction) return null
 
-  const sentimentImprovement =
-    typeof interaction.sentiment_end === "number" && typeof interaction.sentiment_start === "number"
-      ? interaction.sentiment_end - interaction.sentiment_start
-      : 0
+  const sentimentImprovement = interaction.sentimentEnd - interaction.sentimentStart
 
-  // Enhanced transcript handling - use real transcript if available
-  const displayTranscript = interaction.transcript
-    ? // If we have a real transcript, try to parse it or display as-is
-      (() => {
-        try {
-          // Try to parse if it's JSON format
-          const parsed = JSON.parse(interaction.transcript)
-          if (Array.isArray(parsed)) {
-            return parsed.map((entry, index) => ({
-              speaker: entry.speaker || entry.role || (index % 2 === 0 ? "Agent" : "Customer"),
-              timestamp: entry.timestamp || entry.time || `00:${String(index * 15).padStart(2, "0")}`,
-              text: entry.text || entry.message || entry.content || String(entry),
-              sentiment: entry.sentiment || (interaction.sentiment_start || 50) + index * 5,
-            }))
-          } else {
-            // If it's a single string, split by common patterns
-            const lines = interaction.transcript.split(/\n|Agent:|Customer:|Rep:|Caller:/).filter((line) => line.trim())
-            return lines.map((line, index) => ({
-              speaker: index % 2 === 0 ? "Agent" : "Customer",
-              timestamp: `00:${String(index * 30).padStart(2, "0")}`,
-              text: line.trim(),
-              sentiment: (interaction.sentiment_start || 50) + index * 10,
-            }))
-          }
-        } catch (e) {
-          // If parsing fails, treat as plain text
-          return [
-            {
-              speaker: "System",
-              timestamp: "00:00",
-              text: interaction.transcript,
-              sentiment: interaction.sentiment_start || 50,
-            },
-          ]
-        }
-      })()
-    : // Fallback to mock transcript if no real transcript available
-      [
-        {
-          speaker: "Agent",
-          timestamp: "00:00",
-          text: interaction.greeting_text || "Hello, how can I help you today?",
-          sentiment: interaction.sentiment_start || 50,
-        },
-        {
-          speaker: "Customer",
-          timestamp: "00:08",
-          text: `I'm having issues with ${interaction.issue_type.toLowerCase()}. ${interaction.description}`,
-          sentiment: interaction.sentiment_start || 50,
-        },
-        {
-          speaker: "Agent",
-          timestamp: "00:15",
-          text: "I understand your concern and I'm here to help resolve this for you right away.",
-          sentiment: (interaction.sentiment_start || 50) + 15,
-        },
-        {
-          speaker: "Customer",
-          timestamp: "01:45",
-          text: "Thank you so much for your help! This is exactly what I needed.",
-          sentiment: (interaction.sentiment_end || 80) - 5,
-        },
-        {
-          speaker: "Agent",
-          timestamp: "01:52",
-          text: "You're very welcome! Is there anything else I can help you with today?",
-          sentiment: interaction.sentiment_end || 80,
-        },
-      ]
+  // Mock transcript data - in real app this would come from API
+  const mockTranscript = [
+    {
+      speaker: "Agent",
+      timestamp: "00:00",
+      text: interaction.greetingText,
+      sentiment: interaction.sentimentStart,
+    },
+    {
+      speaker: "Customer",
+      timestamp: "00:08",
+      text: "Hi, I'm having issues with my internet connection. It keeps dropping out every few minutes and it's really frustrating.",
+      sentiment: interaction.sentimentStart,
+    },
+    {
+      speaker: "Agent",
+      timestamp: "00:15",
+      text: "I completely understand how frustrating that must be, especially when you're trying to work or relax at home. Let me help you get this resolved right away. Can you tell me when this started happening?",
+      sentiment: interaction.sentimentStart + 10,
+    },
+    {
+      speaker: "Customer",
+      timestamp: "00:28",
+      text: "It started about three days ago. At first I thought it was just temporary, but it's been consistent since then.",
+      sentiment: interaction.sentimentStart + 15,
+    },
+    {
+      speaker: "Agent",
+      timestamp: "00:35",
+      text: "Thank you for that information. I'm going to run a diagnostic on your connection right now to see what might be causing this. This will take just a moment... I can see there are some signal issues on your line. Let me walk you through a few steps that should resolve this.",
+      sentiment: interaction.sentimentStart + 25,
+    },
+    {
+      speaker: "Customer",
+      timestamp: "01:45",
+      text: "Okay, I followed all those steps and the connection seems much more stable now. Thank you so much for your help!",
+      sentiment: interaction.sentimentEnd - 5,
+    },
+    {
+      speaker: "Agent",
+      timestamp: "01:52",
+      text: "You're very welcome! I'm glad we could get that resolved for you. Is there anything else I can help you with today? And please don't hesitate to call us if you experience any other issues.",
+      sentiment: interaction.sentimentEnd,
+    },
+  ]
 
   const getSentimentBadge = (sentiment: number) => {
     if (sentiment >= 80) return <Badge className="bg-green-500">Positive</Badge>
@@ -152,24 +125,16 @@ export function InteractionDetailModal({ isOpen, onClose, interaction }: Interac
     return <Badge variant="outline">{value}%</Badge>
   }
 
-  // Safely handle coaching recommendations
-  const coachingRecommendations = Array.isArray(interaction.coaching_recommendations)
-    ? interaction.coaching_recommendations
-    : typeof interaction.coaching_recommendations === "string"
-      ? [interaction.coaching_recommendations]
-      : ["No coaching recommendations available"]
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5" />
-            Interaction Analysis: {interaction.id || "Unknown ID"}
+            Interaction Analysis: {interaction.interactionId}
           </DialogTitle>
           <DialogDescription>
-            Detailed transcript and scoring analysis for {interaction.agent_name || "Unknown Agent"} -{" "}
-            {interaction.date || "Unknown Date"}
+            Detailed transcript and scoring analysis for {interaction.agentName} - {interaction.date}
           </DialogDescription>
         </DialogHeader>
 
@@ -183,13 +148,13 @@ export function InteractionDetailModal({ isOpen, onClose, interaction }: Interac
                   Call Transcript
                 </CardTitle>
                 <CardDescription>
-                  {interaction.issue_type || "Unknown Issue"} - {interaction.description || "No description available"}
+                  {interaction.issueType} - {interaction.description}
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex-1 min-h-0">
                 <ScrollArea className="h-full">
                   <div className="space-y-4 pr-4">
-                    {displayTranscript.map((entry, index) => (
+                    {mockTranscript.map((entry, index) => (
                       <div key={index} className="flex gap-3">
                         <div className="flex-shrink-0">
                           {entry.speaker === "Agent" ? (
@@ -205,7 +170,7 @@ export function InteractionDetailModal({ isOpen, onClose, interaction }: Interac
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="font-medium text-sm">
-                              {entry.speaker === "Agent" ? interaction.agent_name || "Agent" : "Customer"}
+                              {entry.speaker === "Agent" ? interaction.agentName : "Customer"}
                             </span>
                             <span className="text-xs text-muted-foreground">{entry.timestamp}</span>
                             {getSentimentBadge(entry.sentiment)}
@@ -235,11 +200,11 @@ export function InteractionDetailModal({ isOpen, onClose, interaction }: Interac
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-red-600">{interaction.sentiment_start || 0}</div>
+                        <div className="text-2xl font-bold text-red-600">{interaction.sentimentStart}</div>
                         <div className="text-xs text-muted-foreground">Start Sentiment</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-green-600">{interaction.sentiment_end || 0}</div>
+                        <div className="text-2xl font-bold text-green-600">{interaction.sentimentEnd}</div>
                         <div className="text-xs text-muted-foreground">End Sentiment</div>
                       </div>
                     </div>
@@ -264,14 +229,14 @@ export function InteractionDetailModal({ isOpen, onClose, interaction }: Interac
                         <ThumbsUp className="h-4 w-4 text-green-500" />
                         <span className="text-sm">Positive Sentiment</span>
                       </div>
-                      {getScoreBadge(interaction.positive_sentiment || 0, "positive")}
+                      {getScoreBadge(interaction.positiveSentiment, "positive")}
                     </div>
                     <div className="flex justify-between items-center">
                       <div className="flex items-center gap-2">
                         <ThumbsDown className="h-4 w-4 text-red-500" />
                         <span className="text-sm">Negative Sentiment</span>
                       </div>
-                      {getScoreBadge(interaction.negative_sentiment || 0, "negative")}
+                      {getScoreBadge(interaction.negativeSentiment, "negative")}
                     </div>
                     <Separator />
                     <div className="flex justify-between items-center">
@@ -279,14 +244,14 @@ export function InteractionDetailModal({ isOpen, onClose, interaction }: Interac
                         <Volume2 className="h-4 w-4 text-purple-500" />
                         <span className="text-sm">Crosstalk</span>
                       </div>
-                      {getScoreBadge(interaction.crosstalk_score || 0, "crosstalk")}
+                      {getScoreBadge(interaction.crosstalkScore, "crosstalk")}
                     </div>
                     <div className="flex justify-between items-center">
                       <div className="flex items-center gap-2">
                         <VolumeX className="h-4 w-4 text-orange-500" />
                         <span className="text-sm">Mutual Silence</span>
                       </div>
-                      {getScoreBadge(interaction.mutual_silence_score || 0, "silence")}
+                      {getScoreBadge(interaction.mutualSilenceScore, "silence")}
                     </div>
                   </CardContent>
                 </Card>
@@ -301,42 +266,42 @@ export function InteractionDetailModal({ isOpen, onClose, interaction }: Interac
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex items-center gap-2">
-                      {interaction.has_greeting ? (
+                      {interaction.hasGreeting ? (
                         <CheckCircle className="h-4 w-4 text-green-500" />
                       ) : (
                         <AlertTriangle className="h-4 w-4 text-red-500" />
                       )}
                       <span className="text-sm font-medium">
-                        {interaction.has_greeting ? "Greeting Present" : "No Greeting Detected"}
+                        {interaction.hasGreeting ? "Greeting Present" : "No Greeting Detected"}
                       </span>
                     </div>
                     <div>
                       <div className="text-xs text-muted-foreground mb-1">Behavior Observed</div>
                       <Badge variant="outline" className="text-xs">
-                        {interaction.behavior || "Unknown"}
+                        {interaction.behavior}
                       </Badge>
                     </div>
                     <div>
                       <div className="text-xs text-muted-foreground mb-1">Compliance Score</div>
                       <Badge
                         variant={
-                          interaction.compliance_score === "Excellent"
+                          interaction.complianceScore === "Excellent"
                             ? "default"
-                            : interaction.compliance_score === "Good"
+                            : interaction.complianceScore === "Good"
                               ? "secondary"
-                              : interaction.compliance_score === "Needs Improvement"
+                              : interaction.complianceScore === "Needs Improvement"
                                 ? "outline"
                                 : "destructive"
                         }
                         className={
-                          interaction.compliance_score === "Excellent"
+                          interaction.complianceScore === "Excellent"
                             ? "bg-green-500"
-                            : interaction.compliance_score === "Good"
+                            : interaction.complianceScore === "Good"
                               ? "bg-blue-500 text-white"
                               : ""
                         }
                       >
-                        {interaction.compliance_score || "Unknown"}
+                        {interaction.complianceScore}
                       </Badge>
                     </div>
                   </CardContent>
@@ -352,7 +317,7 @@ export function InteractionDetailModal({ isOpen, onClose, interaction }: Interac
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      {coachingRecommendations.map((recommendation, index) => (
+                      {interaction.coachingRecommendations.map((recommendation, index) => (
                         <div key={index} className="flex items-start gap-2">
                           <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
                           <p className="text-sm text-gray-700">{recommendation}</p>
@@ -372,10 +337,10 @@ export function InteractionDetailModal({ isOpen, onClose, interaction }: Interac
                   </CardHeader>
                   <CardContent>
                     <Badge variant="secondary" className="mb-2">
-                      {interaction.resolution || "Unknown Resolution"}
+                      {interaction.resolution}
                     </Badge>
                     <p className="text-sm text-muted-foreground">
-                      Issue {interaction.resolution ? "successfully resolved" : "processed"} with{" "}
+                      Issue successfully resolved with{" "}
                       {sentimentImprovement > 50 ? "excellent" : sentimentImprovement > 30 ? "good" : "adequate"}{" "}
                       customer satisfaction improvement.
                     </p>

@@ -1,54 +1,50 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { Bar, BarChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Area, AreaChart } from "recharts"
-import { TrendingUp, MessageSquare, Volume2 } from "lucide-react"
+import { TrendingUp, MessageSquare, Volume2, Clock } from "lucide-react"
 
 interface AnalyticsChartsProps {
   data: Array<{
-    id: string
-    agent_name: string
-    sentiment_start: number
-    sentiment_end: number
-    crosstalk_score: number
-    mutual_silence_score: number
-    issue_type: string
+    interactionId: string
+    agentName: string
+    sentimentStart: number
+    sentimentEnd: number
+    crosstalkScore: number
+    nontalkScore: number
+    issueType: string
     date: string
   }>
 }
 
 export function AnalyticsCharts({ data }: AnalyticsChartsProps) {
   // Sentiment improvement data
-  const sentimentData = data.map((call, index) => ({
-    id: call.id && typeof call.id === "string" ? call.id.split("-").pop() || index.toString() : index.toString(),
-    agent: call.agent_name || `Agent ${index + 1}`,
-    start: typeof call.sentiment_start === "number" ? call.sentiment_start : 0,
-    end: typeof call.sentiment_end === "number" ? call.sentiment_end : 0,
-    improvement:
-      typeof call.sentiment_end === "number" && typeof call.sentiment_start === "number"
-        ? call.sentiment_end - call.sentiment_start
-        : 0,
+  const sentimentData = data.map((call) => ({
+    id: call.interactionId.split("-")[2],
+    agent: call.agentName,
+    start: call.sentimentStart,
+    end: call.sentimentEnd,
+    improvement: call.sentimentEnd - call.sentimentStart,
   }))
 
   // Agent performance summary
   const agentSummary = data.reduce(
     (acc, call) => {
-      const agentName = call.agent_name || "Unknown Agent"
-      if (!acc[agentName]) {
-        acc[agentName] = {
-          agent: agentName,
+      if (!acc[call.agentName]) {
+        acc[call.agentName] = {
+          agent: call.agentName,
           avgSentiment: 0,
           avgCrosstalk: 0,
-          avgMutualSilence: 0,
+          avgNontalk: 0,
           callCount: 0,
           totalSentimentEnd: 0,
           totalCrosstalk: 0,
-          totalMutualSilence: 0,
+          totalNontalk: 0,
         }
       }
-      acc[agentName].callCount++
-      acc[agentName].totalSentimentEnd += typeof call.sentiment_end === "number" ? call.sentiment_end : 0
-      acc[agentName].totalCrosstalk += typeof call.crosstalk_score === "number" ? call.crosstalk_score : 0
-      acc[agentName].totalMutualSilence += typeof call.mutual_silence_score === "number" ? call.mutual_silence_score : 0
+      acc[call.agentName].callCount++
+      acc[call.agentName].totalSentimentEnd += call.sentimentEnd
+      acc[call.agentName].totalCrosstalk += call.crosstalkScore
+      acc[call.agentName].totalNontalk += call.nontalkScore
       return acc
     },
     {} as Record<string, any>,
@@ -58,13 +54,28 @@ export function AnalyticsCharts({ data }: AnalyticsChartsProps) {
     agent: agent.agent,
     avgSentiment: Math.round(agent.totalSentimentEnd / agent.callCount),
     avgCrosstalk: Math.round((agent.totalCrosstalk / agent.callCount) * 10) / 10,
-    avgMutualSilence: Math.round((agent.totalMutualSilence / agent.callCount) * 10) / 10,
+    avgNontalk: Math.round((agent.totalNontalk / agent.callCount) * 10) / 10,
     callCount: agent.callCount,
+  }))
+
+  // Issue type distribution
+  const issueTypeData = data.reduce(
+    (acc, call) => {
+      acc[call.issueType] = (acc[call.issueType] || 0) + 1
+      return acc
+    },
+    {} as Record<string, number>,
+  )
+
+  const issueDistribution = Object.entries(issueTypeData).map(([type, count]) => ({
+    type,
+    count,
+    percentage: Math.round((count / data.length) * 100),
   }))
 
   return (
     <div className="space-y-8">
-      <div className="grid grid-cols-1 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <Card className="min-h-[400px]">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -154,7 +165,7 @@ export function AnalyticsCharts({ data }: AnalyticsChartsProps) {
               <Volume2 className="h-5 w-5 text-purple-500" />
               Communication Quality Metrics
             </CardTitle>
-            <CardDescription>Crosstalk and mutual silence analysis by agent</CardDescription>
+            <CardDescription>Crosstalk and nontalk analysis by agent</CardDescription>
           </CardHeader>
           <CardContent className="h-[300px]">
             <ChartContainer
@@ -163,8 +174,8 @@ export function AnalyticsCharts({ data }: AnalyticsChartsProps) {
                   label: "Crosstalk %",
                   color: "hsl(var(--chart-4))",
                 },
-                avgMutualSilence: {
-                  label: "Mutual Silence %",
+                avgNontalk: {
+                  label: "Nontalk %",
                   color: "hsl(var(--chart-5))",
                 },
               }}
@@ -177,7 +188,38 @@ export function AnalyticsCharts({ data }: AnalyticsChartsProps) {
                   <YAxis />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Bar dataKey="avgCrosstalk" fill="var(--color-avgCrosstalk)" radius={[2, 2, 0, 0]} />
-                  <Bar dataKey="avgMutualSilence" fill="var(--color-avgMutualSilence)" radius={[2, 2, 0, 0]} />
+                  <Bar dataKey="avgNontalk" fill="var(--color-avgNontalk)" radius={[2, 2, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="min-h-[400px]">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-orange-500" />
+              Issue Type Distribution
+            </CardTitle>
+            <CardDescription>Breakdown of customer interaction types</CardDescription>
+          </CardHeader>
+          <CardContent className="h-[300px]">
+            <ChartContainer
+              config={{
+                count: {
+                  label: "Count",
+                  color: "hsl(var(--chart-1))",
+                },
+              }}
+              className="h-full w-full"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={issueDistribution} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="type" angle={-45} textAnchor="end" height={80} />
+                  <YAxis />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Bar dataKey="count" fill="var(--color-count)" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </ChartContainer>

@@ -11,7 +11,7 @@ export interface GreetingAnalysis {
   coachingNote: string
 }
 
-export interface SpectrumAnalytics {
+export interface CharterAnalytics {
   sentimentStart: number
   sentimentEnd: number
   sentimentImprovement: number
@@ -22,10 +22,10 @@ export interface SpectrumAnalytics {
   customerSatisfaction: number
 }
 
-export async function analyzeSpectrumInteraction(
+export async function analyzeCharterInteraction(
   transcript: string,
   interactionType: string,
-): Promise<SpectrumAnalytics> {
+): Promise<CharterAnalytics> {
   try {
     const { text } = await generateText({
       model: openai("gpt-4"),

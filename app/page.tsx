@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   CalendarIcon,
   Download,
@@ -21,181 +20,276 @@ import {
   Eye,
   Volume2,
   VolumeX,
-  Loader2,
-  AlertCircle,
-  RefreshCw,
-  Wifi,
-  WifiOff,
-  Settings,
 } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { CoachingInsights } from "@/components/coaching-insights"
 import { AnalyticsCharts } from "@/components/analytics-charts"
 import { InteractionDetailModal } from "@/components/interaction-detail-modal"
-import { fetchInteractions, checkApiHealth, fallbackDemoData, fetchSwaggerSpec, type InteractionData } from "@/lib/api"
-import Image from "next/image"
 
-// Add this import
-const API_BASE_URL = "https://ciap-app-kcf5ofqycqvs2.mangomeadow-b5c8efc2.centralus.azurecontainerapps.io"
+// Enhanced Charter demo data with detailed scoring metrics
+const charterDemoData = [
+  {
+    interactionId: "INT-DEMO-001",
+    date: "2024-01-15",
+    agentName: "Sarah",
+    issueType: "Technical Support",
+    description: "Internet troubleshooting",
+    sentimentStart: 15,
+    sentimentEnd: 78,
+    positiveSentiment: 72,
+    negativeSentiment: 28,
+    crosstalkScore: 2.1,
+    mutualSilenceScore: 8.3,
+    nontalkScore: 5.2,
+    resolution: "Excellent recovery",
+    coachingRecommendations: [
+      "Great technical problem-solving approach",
+      "Excellent customer empathy during frustration",
+      "Consider mentoring other agents on de-escalation",
+    ],
+    greetingText: "Thank you for calling Spectrum, this is Sarah, how can I help you today?",
+    hasGreeting: true,
+    behavior: "Complete Professional Greeting",
+    complianceScore: "Excellent",
+  },
+  {
+    interactionId: "INT-DEMO-002",
+    date: "2024-01-15",
+    agentName: "Mike",
+    issueType: "Billing Dispute",
+    description: "Premium channel charges",
+    sentimentStart: 25,
+    sentimentEnd: 92,
+    positiveSentiment: 85,
+    negativeSentiment: 15,
+    crosstalkScore: 1.8,
+    mutualSilenceScore: 4.2,
+    nontalkScore: 3.1,
+    resolution: "Strong resolution",
+    coachingRecommendations: [
+      "Exceptional billing knowledge demonstration",
+      "Strong conflict resolution skills",
+      "Maintain this level of customer advocacy",
+    ],
+    greetingText: "Good morning, Spectrum, this is Mike, what can I help you with?",
+    hasGreeting: true,
+    behavior: "Professional Greeting",
+    complianceScore: "Excellent",
+  },
+  {
+    interactionId: "INT-DEMO-003",
+    date: "2024-01-14",
+    agentName: "Sarah",
+    issueType: "Sales Success",
+    description: "Internet upgrade",
+    sentimentStart: 45,
+    sentimentEnd: 88,
+    positiveSentiment: 82,
+    negativeSentiment: 18,
+    crosstalkScore: 0.9,
+    mutualSilenceScore: 3.1,
+    nontalkScore: 2.3,
+    resolution: "Consultative approach",
+    coachingRecommendations: [
+      "Perfect consultative selling technique",
+      "Great needs assessment questions",
+      "Model for other sales interactions",
+    ],
+    greetingText: "Hi there, Spectrum, Sarah speaking, how may I assist you?",
+    hasGreeting: true,
+    behavior: "Consultative Greeting",
+    complianceScore: "Good",
+  },
+  {
+    interactionId: "INT-DEMO-004",
+    date: "2024-01-14",
+    agentName: "Jessica",
+    issueType: "Frustrated Customer",
+    description: "Cable outages",
+    sentimentStart: 8,
+    sentimentEnd: 85,
+    positiveSentiment: 68,
+    negativeSentiment: 32,
+    crosstalkScore: 7.2,
+    mutualSilenceScore: 12.4,
+    nontalkScore: 8.7,
+    resolution: "Great de-escalation",
+    coachingRecommendations: [
+      "Outstanding de-escalation skills",
+      "Work on reducing interruptions during venting",
+      "Excellent empathy and solution focus",
+    ],
+    greetingText: "Spectrum, this is Jessica, I'm here to help you today",
+    hasGreeting: true,
+    behavior: "Empathetic Greeting",
+    complianceScore: "Good",
+  },
+  {
+    interactionId: "INT-DEMO-005",
+    date: "2024-01-13",
+    agentName: "Mike",
+    issueType: "Service Transfer",
+    description: "Moving address",
+    sentimentStart: 55,
+    sentimentEnd: 78,
+    positiveSentiment: 75,
+    negativeSentiment: 25,
+    crosstalkScore: 1.2,
+    mutualSilenceScore: 6.8,
+    nontalkScore: 4.8,
+    resolution: "Proactive service",
+    coachingRecommendations: [
+      "Good proactive service approach",
+      "Consider upselling opportunities during transfers",
+      "Solid process knowledge",
+    ],
+    greetingText: "Thank you for calling Spectrum, Mike here, how can I make your day better?",
+    hasGreeting: true,
+    behavior: "Personalized Greeting",
+    complianceScore: "Good",
+  },
+  {
+    interactionId: "INT-DEMO-006",
+    date: "2024-01-13",
+    agentName: "Jessica",
+    issueType: "Chat Support",
+    description: "Bill explanation",
+    sentimentStart: 35,
+    sentimentEnd: 82,
+    positiveSentiment: 78,
+    negativeSentiment: 22,
+    crosstalkScore: 0.0,
+    mutualSilenceScore: 2.1,
+    nontalkScore: 6.2,
+    resolution: "Efficient resolution",
+    coachingRecommendations: [
+      "Excellent chat efficiency",
+      "Clear bill explanation skills",
+      "Good use of screen sharing tools",
+    ],
+    greetingText: "Hello! Welcome to Spectrum support chat. I'm Jessica and I'm ready to help!",
+    hasGreeting: true,
+    behavior: "Chat Greeting",
+    complianceScore: "Excellent",
+  },
+  {
+    interactionId: "INT-DEMO-007",
+    date: "2024-01-12",
+    agentName: "David",
+    issueType: "Service Changes",
+    description: "Cancel cable TV",
+    sentimentStart: 42,
+    sentimentEnd: 89,
+    positiveSentiment: 81,
+    negativeSentiment: 19,
+    crosstalkScore: 3.4,
+    mutualSilenceScore: 9.2,
+    nontalkScore: 7.1,
+    resolution: "Value-focused retention",
+    coachingRecommendations: [
+      "Strong retention conversation",
+      "Good value proposition presentation",
+      "Reduce research time with better preparation",
+    ],
+    greetingText: "Spectrum, David speaking, what brings you in today?",
+    hasGreeting: true,
+    behavior: "Casual Professional",
+    complianceScore: "Good",
+  },
+  {
+    interactionId: "INT-DEMO-008",
+    date: "2024-01-12",
+    agentName: "Sarah",
+    issueType: "Chat Upsell",
+    description: "Add phone service",
+    sentimentStart: 60,
+    sentimentEnd: 91,
+    positiveSentiment: 88,
+    negativeSentiment: 12,
+    crosstalkScore: 0.0,
+    mutualSilenceScore: 1.5,
+    nontalkScore: 1.8,
+    resolution: "Consultative sales",
+    coachingRecommendations: [
+      "Perfect chat-based selling approach",
+      "Excellent needs discovery",
+      "Great bundle value explanation",
+    ],
+    greetingText: "Hi! Thanks for choosing Spectrum chat support. I'm Sarah - what can I help you explore today?",
+    hasGreeting: true,
+    behavior: "Engaging Chat Greeting",
+    complianceScore: "Excellent",
+  },
+  {
+    interactionId: "INT-DEMO-009",
+    date: "2024-01-11",
+    agentName: "David",
+    issueType: "WiFi Issues",
+    description: "Coverage problems",
+    sentimentStart: 28,
+    sentimentEnd: 86,
+    positiveSentiment: 74,
+    negativeSentiment: 26,
+    crosstalkScore: 4.1,
+    mutualSilenceScore: 18.3,
+    nontalkScore: 15.8,
+    resolution: "Technical solution",
+    coachingRecommendations: [
+      "Strong technical troubleshooting",
+      "Improve preparation to reduce research time",
+      "Consider technical certification advancement",
+    ],
+    greetingText: "Spectrum tech support, this is David, let's solve your connectivity issue",
+    hasGreeting: true,
+    behavior: "Solution-Focused Greeting",
+    complianceScore: "Good",
+  },
+  {
+    interactionId: "INT-DEMO-010",
+    date: "2024-01-11",
+    agentName: "Mike",
+    issueType: "Critical Issue",
+    description: "Frequent outages",
+    sentimentStart: 5,
+    sentimentEnd: 75,
+    positiveSentiment: 58,
+    negativeSentiment: 42,
+    crosstalkScore: 5.8,
+    mutualSilenceScore: 15.7,
+    nontalkScore: 12.3,
+    resolution: "Escalated support",
+    coachingRecommendations: [
+      "Excellent crisis management",
+      "Good escalation decision making",
+      "Work on active listening during high emotion",
+    ],
+    greetingText: "Spectrum, Mike here, I understand you're having some serious issues - let's get this fixed",
+    hasGreeting: true,
+    behavior: "Crisis-Aware Greeting",
+    complianceScore: "Good",
+  },
+]
 
-export default function SpectrumAnalyticsDashboard() {
+export default function CharterAnalyticsDashboard() {
   const [searchTerm, setSearchTerm] = useState("")
   const [dateFilter, setDateFilter] = useState<Date>()
   const [agentFilter, setAgentFilter] = useState("all")
   const [issueTypeFilter, setIssueTypeFilter] = useState("all")
-  const [interactions, setInteractions] = useState<InteractionData[]>([])
-  const [filteredData, setFilteredData] = useState<InteractionData[]>([])
-  const [selectedInteraction, setSelectedInteraction] = useState<InteractionData | null>(null)
+  const [filteredData, setFilteredData] = useState(charterDemoData)
+  const [selectedInteraction, setSelectedInteraction] = useState<(typeof charterDemoData)[0] | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [agents, setAgents] = useState<string[]>([])
-  const [issueTypes, setIssueTypes] = useState<string[]>([])
-  const [isUsingFallbackData, setIsUsingFallbackData] = useState(false)
-  const [analyticsSummary, setAnalyticsSummary] = useState({
-    total_interactions: 0,
-    avg_sentiment_improvement: 0,
-    avg_crosstalk: 0,
-    avg_mutual_silence: 0,
-    avg_positive_sentiment: 0,
-  })
-
-  const useFallbackData = () => {
-    setIsUsingFallbackData(true)
-    setInteractions(fallbackDemoData)
-    setFilteredData(fallbackDemoData)
-
-    // Extract unique agents and issue types from fallback data
-    const fallbackAgents = [...new Set(fallbackDemoData.map((item) => item.agent_name))]
-    const fallbackIssueTypes = [...new Set(fallbackDemoData.map((item) => item.issue_type))]
-
-    setAgents(fallbackAgents)
-    setIssueTypes(fallbackIssueTypes)
-
-    calculateSummaryFromData(fallbackDemoData)
-  }
-
-  // Add a function to analyze the API documentation on component mount
-  const analyzeApiDocumentation = async () => {
-    try {
-      console.log("Analyzing Spectrum Query Engine API documentation...")
-      const spec = await fetchSwaggerSpec()
-
-      // Log the API structure for analysis
-      console.log("API Title:", spec.info?.title)
-      console.log("API Version:", spec.info?.version)
-      console.log("API Description:", spec.info?.description)
-
-      if (spec.components?.schemas) {
-        console.log("Available Data Models:", Object.keys(spec.components.schemas))
-      }
-
-      return spec
-    } catch (error) {
-      console.error("Failed to analyze API documentation:", error)
-      return null
-    }
-  }
-
-  // Update the loadData function to add more debugging
-  const loadData = async () => {
-    setLoading(true)
-    setError(null)
-    setIsUsingFallbackData(false)
-
-    try {
-      console.log("=== STARTING DATA LOAD ===")
-
-      // First analyze the API documentation
-      const apiSpec = await analyzeApiDocumentation()
-
-      if (!apiSpec) {
-        console.log("Could not load API specification, using fallback data")
-        return
-      }
-
-      // Check if API is available
-      const apiHealthy = await checkApiHealth()
-      console.log("API Health Check:", apiHealthy)
-
-      if (!apiHealthy) {
-        console.log("API not available, using fallback data")
-        return
-      }
-
-      console.log("Attempting to fetch interactions...")
-
-      // Try to load real data using the documented endpoints
-      const interactionsResponse = await fetchInteractions({ limit: 100 })
-      console.log("Interactions response:", interactionsResponse)
-
-      if (interactionsResponse && interactionsResponse.data && interactionsResponse.data.length > 0) {
-        console.log(`✓ Successfully loaded ${interactionsResponse.data.length} interactions`)
-        setInteractions(interactionsResponse.data)
-        setFilteredData(interactionsResponse.data)
-
-        // Extract agents and issue types from the loaded data
-        const loadedAgents = [...new Set(interactionsResponse.data.map((item) => item.agent_name).filter(Boolean))]
-        const loadedIssueTypes = [...new Set(interactionsResponse.data.map((item) => item.issue_type).filter(Boolean))]
-
-        setAgents(loadedAgents)
-        setIssueTypes(loadedIssueTypes)
-        calculateSummaryFromData(interactionsResponse.data)
-
-        console.log("Extracted agents:", loadedAgents)
-        console.log("Extracted issue types:", loadedIssueTypes)
-      } else {
-        console.log("No interaction data found, using fallback")
-      }
-    } catch (err) {
-      console.error("Error loading data:", err)
-      setError(err instanceof Error ? err.message : "Failed to load data")
-    } finally {
-      setLoading(false)
-      console.log("=== DATA LOAD COMPLETE ===")
-    }
-  }
-
-  // Load initial data
-  useEffect(() => {
-    loadData()
-  }, [])
-
-  const calculateSummaryFromData = (data: InteractionData[]) => {
-    if (data.length === 0) return
-
-    const totalInteractions = data.length
-    const avgSentimentImprovement = Math.round(
-      data.reduce((sum, call) => sum + (call.sentiment_end - call.sentiment_start), 0) / totalInteractions,
-    )
-    const avgCrosstalk =
-      Math.round((data.reduce((sum, call) => sum + call.crosstalk_score, 0) / totalInteractions) * 10) / 10
-    const avgMutualSilence =
-      Math.round((data.reduce((sum, call) => sum + call.mutual_silence_score, 0) / totalInteractions) * 10) / 10
-    const avgPositiveSentiment = Math.round(
-      data.reduce((sum, call) => sum + call.positive_sentiment, 0) / totalInteractions,
-    )
-
-    setAnalyticsSummary({
-      total_interactions: totalInteractions,
-      avg_sentiment_improvement: avgSentimentImprovement,
-      avg_crosstalk: avgCrosstalk,
-      avg_mutual_silence: avgMutualSilence,
-      avg_positive_sentiment: avgPositiveSentiment,
-    })
-  }
 
   // Filter data based on search and filters
   useEffect(() => {
-    let filtered = interactions
+    let filtered = charterDemoData
 
     if (searchTerm) {
       filtered = filtered.filter(
         (call) =>
-          call.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          call.agent_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          call.issue_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          call.interactionId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          call.agentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          call.issueType.toLowerCase().includes(searchTerm.toLowerCase()) ||
           call.description.toLowerCase().includes(searchTerm.toLowerCase()),
       )
     }
@@ -206,15 +300,30 @@ export default function SpectrumAnalyticsDashboard() {
     }
 
     if (agentFilter !== "all") {
-      filtered = filtered.filter((call) => call.agent_name === agentFilter)
+      filtered = filtered.filter((call) => call.agentName === agentFilter)
     }
 
     if (issueTypeFilter !== "all") {
-      filtered = filtered.filter((call) => call.issue_type === issueTypeFilter)
+      filtered = filtered.filter((call) => call.issueType === issueTypeFilter)
     }
 
     setFilteredData(filtered)
-  }, [searchTerm, dateFilter, agentFilter, issueTypeFilter, interactions])
+  }, [searchTerm, dateFilter, agentFilter, issueTypeFilter])
+
+  const totalInteractions = charterDemoData.length
+  const avgSentimentImprovement = Math.round(
+    charterDemoData.reduce((sum, call) => sum + (call.sentimentEnd - call.sentimentStart), 0) / totalInteractions,
+  )
+  const avgCrosstalk =
+    Math.round((charterDemoData.reduce((sum, call) => sum + call.crosstalkScore, 0) / totalInteractions) * 10) / 10
+  const avgMutualSilence =
+    Math.round((charterDemoData.reduce((sum, call) => sum + call.mutualSilenceScore, 0) / totalInteractions) * 10) / 10
+  const avgPositiveSentiment = Math.round(
+    charterDemoData.reduce((sum, call) => sum + call.positiveSentiment, 0) / totalInteractions,
+  )
+
+  const uniqueAgents = [...new Set(charterDemoData.map((call) => call.agentName))]
+  const uniqueIssueTypes = [...new Set(charterDemoData.map((call) => call.issueType))]
 
   const getSentimentBadge = (start: number, end: number) => {
     const improvement = end - start
@@ -253,7 +362,7 @@ export default function SpectrumAnalyticsDashboard() {
     return <Badge variant="outline">{value}%</Badge>
   }
 
-  const handleViewInteraction = (interaction: InteractionData) => {
+  const handleViewInteraction = (interaction: (typeof charterDemoData)[0]) => {
     setSelectedInteraction(interaction)
     setIsModalOpen(true)
   }
@@ -277,20 +386,20 @@ export default function SpectrumAnalyticsDashboard() {
         "Top Coaching Recommendation",
       ],
       ...filteredData.map((call) => [
-        call.id,
+        call.interactionId,
         call.date,
-        call.agent_name,
-        call.issue_type,
-        call.sentiment_start,
-        call.sentiment_end,
-        call.sentiment_end - call.sentiment_start,
-        call.positive_sentiment,
-        call.negative_sentiment,
-        call.crosstalk_score,
-        call.mutual_silence_score,
-        call.nontalk_score,
+        call.agentName,
+        call.issueType,
+        call.sentimentStart,
+        call.sentimentEnd,
+        call.sentimentEnd - call.sentimentStart,
+        call.positiveSentiment,
+        call.negativeSentiment,
+        call.crosstalkScore,
+        call.mutualSilenceScore,
+        call.nontalkScore,
         call.resolution,
-        call.coaching_recommendations[0] || "",
+        call.coachingRecommendations[0] || "",
       ]),
     ]
       .map((row) => row.join(","))
@@ -305,107 +414,24 @@ export default function SpectrumAnalyticsDashboard() {
     window.URL.revokeObjectURL(url)
   }
 
-  useEffect(() => {
-    if (!interactions.length) {
-      useFallbackData()
-    }
-  }, [interactions])
-
-  if (loading) {
-    return (
-      <div className="container mx-auto p-6 flex items-center justify-center min-h-screen">
-        <div className="flex items-center gap-2">
-          <Loader2 className="h-6 w-6 animate-spin" />
-          <span>Loading Spectrum Analytics Dashboard...</span>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="container mx-auto p-6 space-y-6">
-      {/* Connection Status Alert */}
-      {isUsingFallbackData && (
-        <Alert>
-          <WifiOff className="h-4 w-4" />
-          <AlertDescription className="flex items-center justify-between">
-            <span>
-              Using demo data - API connection unavailable. Dashboard functionality is preserved for demonstration.
-            </span>
-            <Button variant="outline" size="sm" onClick={loadData} className="ml-4 bg-transparent">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Retry Connection
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
+      {/* Add Spectrum Logo */}
+      <div className="flex justify-center mb-8">
+        <img src="/images/spectrum-logo.png" alt="Spectrum Logo" className="h-16 w-auto" />
+      </div>
 
-      {error && !isUsingFallbackData && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription className="flex items-center justify-between">
-            <span>Error loading data: {error}</span>
-            <Button variant="outline" size="sm" onClick={loadData} className="ml-4 bg-transparent">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Retry
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      <div className="space-y-4">
-        {/* Top Header with Logo and Title */}
-        <div className="space-y-4">
-          {/* Logo at the top */}
-          <div className="flex justify-center">
-            <Image
-              src="/spectrum-logo-new.png"
-              alt="Spectrum"
-              width={200}
-              height={60}
-              className="h-12 w-auto"
-              priority
-            />
-          </div>
-
-          {/* Title and subtitle below logo */}
-          <div className="text-center">
-            <h1 className="text-3xl font-bold">Supervisor Analytics Dashboard</h1>
-            <p className="text-muted-foreground flex items-center justify-center gap-2">
-              {isUsingFallbackData ? (
-                <>
-                  <WifiOff className="h-4 w-4" />
-                  Demo mode - Real-time interaction analytics with crosstalk, mutual silence, and sentiment scoring
-                </>
-              ) : (
-                <>
-                  <Wifi className="h-4 w-4" />
-                  Real-time interaction analytics with crosstalk, mutual silence, and sentiment scoring
-                </>
-              )}
-            </p>
-          </div>
-
-          {/* Action Buttons Row */}
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              onClick={() => (window.location.href = "/admin")}
-              className="flex items-center gap-2 bg-transparent"
-            >
-              <Settings className="h-4 w-4" />
-              Admin
-            </Button>
-            <Button variant="outline" onClick={loadData} className="flex items-center gap-2 bg-transparent">
-              <RefreshCw className="h-4 w-4" />
-              Refresh
-            </Button>
-            <Button onClick={exportData} className="flex items-center gap-2">
-              <Download className="h-4 w-4" />
-              Export Report
-            </Button>
-          </div>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">Spectrum - Supervisor Analytics Dashboard</h1>
+          <p className="text-muted-foreground">
+            Detailed interaction analytics with crosstalk, mutual silence, and sentiment scoring
+          </p>
         </div>
+        <Button onClick={exportData} className="flex items-center gap-2">
+          <Download className="h-4 w-4" />
+          Export Detailed Report
+        </Button>
       </div>
 
       {/* Enhanced Summary Cards */}
@@ -418,7 +444,7 @@ export default function SpectrumAnalyticsDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analyticsSummary.total_interactions}</div>
+            <div className="text-2xl font-bold">{totalInteractions}</div>
             <p className="text-xs text-muted-foreground">Spectrum customer contacts</p>
           </CardContent>
         </Card>
@@ -430,7 +456,7 @@ export default function SpectrumAnalyticsDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">+{analyticsSummary.avg_sentiment_improvement}</div>
+            <div className="text-2xl font-bold text-green-600">+{avgSentimentImprovement}</div>
             <p className="text-xs text-muted-foreground">Customer satisfaction improvement</p>
           </CardContent>
         </Card>
@@ -442,7 +468,7 @@ export default function SpectrumAnalyticsDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{analyticsSummary.avg_positive_sentiment}%</div>
+            <div className="text-2xl font-bold text-blue-600">{avgPositiveSentiment}%</div>
             <p className="text-xs text-muted-foreground">Overall positive sentiment</p>
           </CardContent>
         </Card>
@@ -454,7 +480,7 @@ export default function SpectrumAnalyticsDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analyticsSummary.avg_crosstalk}%</div>
+            <div className="text-2xl font-bold">{avgCrosstalk}%</div>
             <p className="text-xs text-muted-foreground">Communication overlap</p>
           </CardContent>
         </Card>
@@ -466,7 +492,7 @@ export default function SpectrumAnalyticsDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analyticsSummary.avg_mutual_silence}%</div>
+            <div className="text-2xl font-bold">{avgMutualSilence}%</div>
             <p className="text-xs text-muted-foreground">Silence periods</p>
           </CardContent>
         </Card>
@@ -505,7 +531,7 @@ export default function SpectrumAnalyticsDashboard() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Agents</SelectItem>
-                {agents.map((agent) => (
+                {uniqueAgents.map((agent) => (
                   <SelectItem key={agent} value={agent}>
                     {agent}
                   </SelectItem>
@@ -518,7 +544,7 @@ export default function SpectrumAnalyticsDashboard() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Issue Types</SelectItem>
-                {issueTypes.map((type) => (
+                {uniqueIssueTypes.map((type) => (
                   <SelectItem key={type} value={type}>
                     {type}
                   </SelectItem>
@@ -564,8 +590,7 @@ export default function SpectrumAnalyticsDashboard() {
         <CardHeader>
           <CardTitle>Detailed Interaction Scoring</CardTitle>
           <CardDescription>
-            Showing {filteredData.length} of {analyticsSummary.total_interactions} interactions with comprehensive
-            scoring metrics {isUsingFallbackData && "(Demo Data)"}
+            Showing {filteredData.length} of {totalInteractions} interactions with comprehensive scoring metrics
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -587,34 +612,34 @@ export default function SpectrumAnalyticsDashboard() {
               </TableHeader>
               <TableBody>
                 {filteredData.map((call) => (
-                  <TableRow key={call.id}>
+                  <TableRow key={call.interactionId}>
                     <TableCell className="font-medium">
                       <div>
-                        <div>{call.id}</div>
+                        <div>{call.interactionId}</div>
                         <div className="text-xs text-muted-foreground">{call.date}</div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{call.agent_name}</Badge>
+                      <Badge variant="outline">{call.agentName}</Badge>
                     </TableCell>
                     <TableCell>
                       <div>
-                        <div className="font-medium text-sm">{call.issue_type}</div>
+                        <div className="font-medium text-sm">{call.issueType}</div>
                         <div className="text-xs text-muted-foreground">{call.description}</div>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1">
                         <div className="text-xs text-muted-foreground">
-                          {call.sentiment_start} → {call.sentiment_end}
+                          {call.sentimentStart} → {call.sentimentEnd}
                         </div>
-                        {getSentimentBadge(call.sentiment_start, call.sentiment_end)}
+                        {getSentimentBadge(call.sentimentStart, call.sentimentEnd)}
                       </div>
                     </TableCell>
-                    <TableCell>{getScoreBadge(call.positive_sentiment, "positive")}</TableCell>
-                    <TableCell>{getScoreBadge(call.negative_sentiment, "negative")}</TableCell>
-                    <TableCell>{getScoreBadge(call.crosstalk_score, "crosstalk")}</TableCell>
-                    <TableCell>{getScoreBadge(call.mutual_silence_score, "silence")}</TableCell>
+                    <TableCell>{getScoreBadge(call.positiveSentiment, "positive")}</TableCell>
+                    <TableCell>{getScoreBadge(call.negativeSentiment, "negative")}</TableCell>
+                    <TableCell>{getScoreBadge(call.crosstalkScore, "crosstalk")}</TableCell>
+                    <TableCell>{getScoreBadge(call.mutualSilenceScore, "silence")}</TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="text-xs">
                         {call.resolution}
